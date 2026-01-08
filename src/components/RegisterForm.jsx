@@ -17,6 +17,8 @@ const RegisterForm = () => {
     };
     const result = await postUser(formData);
     console.log(result);
+    alert(`User created with`);
+    console.log(result);
   };
 
   const inputClass =

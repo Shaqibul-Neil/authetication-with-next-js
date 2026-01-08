@@ -1,13 +1,9 @@
+import { dbConnect } from "@/lib/dbConnect";
 import NextAuth from "next-auth";
-
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+
 //next auth creates a session that takes only name, image, email.
-const userList = [
-  { name: "hablu", password: "1234" },
-  { name: "bablu", password: "5678" },
-  { name: "dablu", password: "9012" },
-  { name: "kablu", password: "3456" },
-];
 export const authOptions = {
   // Configure one or more authentication providers
   providers: [
@@ -18,32 +14,52 @@ export const authOptions = {
       name: "Email & Password",
       //form inputs
       credentials: {
-        username: { label: "Username", type: "text", placeholder: "jsmith" },
+        email: { label: "Email", type: "email", placeholder: "Enter Email" },
         password: {
           label: "Password",
           type: "password",
-          placeholder: "Password",
-        },
-        secretCode: {
-          label: "Secret Code",
-          type: "number",
-          placeholder: "enter code",
+          placeholder: "Enter Password",
         },
       },
       async authorize(credentials, req) {
         //my own login logic
-        const { username, password, secretCode } = credentials;
-        //find user
-        const user = userList.find((u) => u.name === username);
+        const { email, password } = credentials;
+        //find user in database
+        const user = await dbConnect("users").findOne({ email });
         //if no user
         if (!user) return null;
         //user exists then match password
-        const isPasswordOk = user.password === password;
+        const isPasswordOk = await bcrypt.compare(password, user.password);
         if (isPasswordOk) return user;
         return null;
       },
     }),
   ],
+  callbacks: {
+    //order of execution 1
+    async signIn({ user, account, profile, email, credentials }) {
+      return true;
+    },
+    //order of execution 4
+    async redirect({ url, baseUrl }) {
+      return baseUrl;
+    },
+    //order of execution 3
+    async session({ session, token, user }) {
+      if (token) {
+        session.role = token.role;
+      }
+      return session;
+    },
+    //order of execution 2
+    async jwt({ token, user, account, profile, isNewUser }) {
+      if (user) {
+        token.email = user.email;
+        token.role = user.role;
+      }
+      return token;
+    },
+  },
 };
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
