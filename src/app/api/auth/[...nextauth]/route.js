@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 
 import CredentialsProvider from "next-auth/providers/credentials";
-
+//next auth creates a session that takes only name, image, email.
 const userList = [
   { name: "hablu", password: "1234" },
   { name: "bablu", password: "5678" },
